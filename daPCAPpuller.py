@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Name: pcapd.py
+Name: daPCAPpuller.py aka tshark-chat-wrapper
+*ty for assistance chatGPT
 Date: 08/12/2025
 By: Kyle Versluis (talons)
 
