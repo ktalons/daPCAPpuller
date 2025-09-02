@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Name: daPCAPpuller.py aka tshark-chat-wrapper
+Name: PCAPpuller.py aka tshark-chat-wrapper
 *ty for assistance chatGPT
 Date: 08/12/2025
 By: Kyle Versluis (talons)
@@ -35,14 +35,14 @@ Prereqs:
   - Python package: tqdm  (pip install tqdm)
   
 Required Basic Usage:
-python3 pcapd.py \
+python3 PCAPpuller.py \
   --root /path/to/root/pcap_directory \
   --start "YYYY-MM_DD HH:MM:SS" --minutes (1-60) \
   --out /path/to/output.pcapng \
   --tmpdir /path/to/temp_directory <optional> HOWEVER required if you have large sets of files
 
 Optional Full Usage:
-python3 pcapd.py \
+python3 PCAPpuller.py \
   --root /path/to/root/pcap_directory \
   --start "YYYY-MM_DD HH:MM:SS" --minutes (1-60) \
   --out /path/to/output.pcapng \
@@ -57,7 +57,7 @@ python3 pcapd.py \
   --dry-run <optional> (default: False)
 
 Dry-Run Usage (no merge/trim):
-python3 pcapd.py \
+python3 PCAPpuller.py \
   --root /path/to/root/pcap_directory \
   --start "YYYY-MM_DD HH:MM:SS" --minutes (1-60) \
   --dry-run \
