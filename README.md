@@ -1,5 +1,5 @@
-# daPCAPpuller 👊
-## A fast PCAP window selector, merger, and trimmer ⏩
+# PCAPpuller 👊
+## A fast PCAP window selector, merger, and trimmer ⏩ (tshark wrapper)
 > A small Python utility for high-volume packet collections. Point it at a given directory, give it a start time and duration (same day, up to 60 minutes), and it will:
 - Find candidate files quickly (by filesystem mtime),
 - optionally refine them precisely (via capinfos first/last packet times, in parallel),
@@ -59,11 +59,11 @@ ___
 ____
 ## Quick Usage ⭐
 ### Basic (required args only)
-`python3 pcapd.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
+`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
 ### Advanced (precise filter, auto worker, wireshark (dns) filter, gzip, etc)
-`python3 pcapd.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output_dns.pcap.gz --out-format pcap --tmpdir /big/volume/tmp --batch-size 500 --slop-min 120 --precise-filter --workers auto --display-filter "dns" --gzip`
+`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output_dns.pcap.gz --out-format pcap --tmpdir /big/volume/tmp --batch-size 500 --slop-min 120 --precise-filter --workers auto --display-filter "dns" --gzip`
 ### Dry-run (no merge/trim) + write list
-`python3 pcapd.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --precise-filter --workers auto --dry-run --list-out /path/to/list.csv`
+`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --precise-filter --workers auto --dry-run --list-out /path/to/list.csv`
 ___
 ## Arguments 💥
 ### Required ❗
