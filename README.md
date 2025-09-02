@@ -1,5 +1,5 @@
 # PCAPpuller 👊
-## A fast PCAP window selector, merger, and trimmer ⏩ (tshark wrapper)
+## A fast PCAP window selector, merger, and trimmer ⏩ 
 > A small Python utility for high-volume packet collections. Point it at a given directory, give it a start time and duration (same day, up to 60 minutes), and it will:
 - Find candidate files quickly (by filesystem mtime),
 - optionally refine them precisely (via capinfos first/last packet times, in parallel),
