@@ -37,15 +37,15 @@ ___
 ___
 > **Debian/Ubuntu**
 > `sudo apt-get update`
-> `sudo apt-get install -y wireshark-cli`
+> `sudo apt-get install wireshark`
 > `python3 -m pip install --upgrade tqdm`
 #
 > **Manjaro/Arch**
-> `sudo pacman -Syu --needed wireshark-cli`
+> `sudo pacman -Syu wireshark`
 > `python3 -m pip install --upgrade tqdm`
 # 
 > **Fedora/CentOS/RHEL**
-> `sudo dnf install -y wireshark-cli`
+> `sudo dnf install wireshark`
 > `python3 -m pip install --upgrade tqdm`
 #
 > **macOS (Homebrew)**
