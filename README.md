@@ -1,4 +1,4 @@
-# PCAPpuller 👊
+# PCAPpuller 👊 [![CI](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml)
 ## A fast PCAP window selector, merger, and trimmer ⏩ 
 > A small Python utility for high-volume packet collections. Point it at one or more directories, give it a start time and duration (or end time), and it will:
 - Find candidate files quickly (by filesystem mtime),
@@ -121,6 +121,17 @@ Features:
 - Checkboxes: Precise filter, Gzip, Dry-run, Verbose
 - Display filter input (Wireshark syntax)
 - Progress bar with Cancel support
+
+### Single-file GUI build (PyInstaller)
+- Install: `python3 -m pip install pyinstaller`
+- Build (macOS/Windows/Linux):
+  - `pyinstaller --onefile --windowed --name PCAPpullerGUI gui_pcappuller.py`
+- Output:
+  - macOS/Linux: `dist/PCAPpullerGUI`
+  - Windows: `dist/PCAPpullerGUI.exe`
+Notes:
+- This bundles the Python app; Wireshark CLI tools must still be installed on the system PATH.
+- On macOS, you may need to allow the binary in System Settings > Privacy & Security (Gatekeeper).
 ___
 ## Tips 🗯️ 
 - Use --tmpdir on a large volume (e.g., the NAS) if your /tmp is small.
