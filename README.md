@@ -1,4 +1,4 @@
-# PCAPpuller 👊 [![CI](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml)
+# PCAPpuller 👊 [![CI](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml) [![Release](https://github.com/ktalons/daPCAPpuller/actions/workflows/release.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/release.yml)
 ## A fast PCAP window selector, merger, and trimmer ⏩ 
 > A small Python utility for high-volume packet collections. Point it at one or more directories, give it a start time and duration (or end time), and it will:
 - Find candidate files quickly (by filesystem mtime),
@@ -80,7 +80,11 @@ ____
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --out out.pcapng`
 - `pcap-puller --root /mnt/dir1 /mnt/dir2 --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS" --out out.pcapng`
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --precise-filter --workers auto --display-filter "dns" --gzip --verbose`
-- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary --report survivors.csv`
+- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary`
+
+### CLI quickstart
+- Walkthrough gif:
+  ![CLI Quickstart](docs/media/cli-quickstart.gif)
 
 ### Direct (without install)
 `python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
@@ -142,6 +146,10 @@ ___
   - Control with `--cache <PATH>`, disable with `--no-cache`, clear with `--clear-cache`.
 - Display filters use Wireshark display syntax (not capture filters).
 - For auditing, run --dry-run --list-out list.csv first; add `--summary` to see min/max packet times.
+
+### Verify prerequisites quickly
+- Run: `scripts/verify_wireshark_tools.sh`
+- Checks presence of mergecap, editcap, capinfos, tshark and prints OS-specific install hints.
 ___
 ## Development 🛠️
 - Install tooling (in a virtualenv):
@@ -151,6 +159,9 @@ ___
   - pre-commit install
   - pre-commit run --all-files
 - CI runs ruff (E,F) and mypy on pushes/PRs (see .github/workflows/ci.yml).
+- Regenerate CLI quickstart GIF with VHS (macOS/Linux):
+  - brew install charmbracelet/tap/vhs
+  - vhs docs/media/cli-quickstart.tape
 
 ## Releases 🚀
 - Auto-build GitHub Release with binaries for macOS/Linux/Windows:
@@ -160,6 +171,17 @@ ___
 - Manual release with gh (optional):
   - `gh release create vX.Y.Z --generate-notes --title "vX.Y.Z"`
   - Attach artifacts if needed.
+
+## Packaging 📦
+### Homebrew (macOS)
+- Create tap repo (e.g., ktalons/homebrew-tap) and copy packaging/homebrew/Formula/pcappuller.rb
+- Update formula to latest with: `packaging/homebrew/update_formula.sh latest`
+- Tap and install: `brew tap ktalons/tap && brew install pcappuller`
+
+### Linux (.deb, .rpm, .tar.zst)
+- Requires fpm (gem install fpm) and a Linux-built binary (see Release workflow)
+- Build packages: `packaging/linux/build_fpm.sh`
+- Outputs written to packaging/artifacts/
 
 ## Troubleshooting 🚨
 - Temp disk fills up

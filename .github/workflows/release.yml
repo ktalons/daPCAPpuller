@@ -42,6 +42,36 @@ jobs:
             mv dist/PCAPpullerGUI "release/PCAPpullerGUI-linux"
           fi
 
+      - name: Build DEB/RPM (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ruby-full build-essential rpm
+          sudo gem install --no-document fpm
+          VERSION=$(grep -E '^version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
+          STAGE=$(mktemp -d)
+          mkdir -p "$STAGE/usr/local/bin"
+          install -m 0755 release/PCAPpullerGUI-linux "$STAGE/usr/local/bin/pcappuller-gui"
+          NAME=pcappuller-gui
+          DESC="PCAPpuller GUI: fast PCAP window selector, merger, trimmer"
+          URL="https://github.com/ktalons/daPCAPpuller"
+          LICENSE=MIT
+          MAINTAINER="Kyle Versluis"
+          # deb
+          fpm -s dir -t deb -n "$NAME" -v "$VERSION" \
+            --license "$LICENSE" --url "$URL" --maintainer "$MAINTAINER" \
+            --description "$DESC" \
+            -C "$STAGE" --prefix / \
+            -p "release/${NAME}_${VERSION}_amd64.deb"
+          # rpm
+          fpm -s dir -t rpm -n "$NAME" -v "$VERSION" \
+            --license "$LICENSE" --url "$URL" --maintainer "$MAINTAINER" \
+            --description "$DESC" \
+            -C "$STAGE" --prefix / \
+            -p "release/${NAME}-${VERSION}-1.x86_64.rpm"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -58,6 +88,12 @@ jobs:
           path: artifacts
           pattern: gui-binaries-*
           merge-multiple: true
+
+      - name: Build Analyst Guide PDF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-recommended texlive-fonts-recommended
+          pandoc docs/Analyst-Guide.md -o artifacts/Analyst-Guide.pdf || true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
