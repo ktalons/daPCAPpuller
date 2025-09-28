@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pcappuller"
+version = "0.1.0"
+description = "A fast PCAP window selector, merger, and trimmer"
+readme = "README.md"
+authors = [
+  { name = "Kyle Versluis" }
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+dependencies = [
+  "tqdm",
+]
+
+[project.optional-dependencies]
+# pip install .[gui]
+gui = ["PySimpleGUI"]
+# pip install .[datetime]
+datetime = ["python-dateutil"]
+
+[project.scripts]
+pcap-puller = "pcappuller.cli:main"
+pcap-puller-gui = "pcappuller.gui:main"
+
+[tool.setuptools]
+packages = ["pcappuller"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+extend-exclude = ["_smoke_data", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+disable_error_code = ["import-untyped"]
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = false
+pretty = true
+show_error_codes = true

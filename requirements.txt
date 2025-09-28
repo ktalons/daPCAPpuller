@@ -1,0 +1,3 @@
+tqdm
+PySimpleGUI  # optional for GUI
+python-dateutil  # optional for flexible datetime parsing
