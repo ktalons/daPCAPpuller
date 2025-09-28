@@ -1,4 +1,4 @@
-# PCAPpuller 👊 [![CI](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml)
+# PCAPpuller 👊 [![CI](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml) [![Release](https://github.com/ktalons/daPCAPpuller/actions/workflows/release.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/release.yml)
 ## A fast PCAP window selector, merger, and trimmer ⏩ 
 > A small Python utility for high-volume packet collections. Point it at one or more directories, give it a start time and duration (or end time), and it will:
 - Find candidate files quickly (by filesystem mtime),
@@ -142,6 +142,10 @@ ___
   - Control with `--cache <PATH>`, disable with `--no-cache`, clear with `--clear-cache`.
 - Display filters use Wireshark display syntax (not capture filters).
 - For auditing, run --dry-run --list-out list.csv first; add `--summary` to see min/max packet times.
+
+### Verify prerequisites quickly
+- Run: `scripts/verify_wireshark_tools.sh`
+- Checks presence of mergecap, editcap, capinfos, tshark and prints OS-specific install hints.
 ___
 ## Development 🛠️
 - Install tooling (in a virtualenv):

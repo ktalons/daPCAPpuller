@@ -86,6 +86,12 @@ jobs:
           pattern: gui-binaries-*
           merge-multiple: true
 
+      - name: Build Analyst Guide PDF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-recommended texlive-fonts-recommended
+          pandoc docs/Analyst-Guide.md -o artifacts/Analyst-Guide.pdf || true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
