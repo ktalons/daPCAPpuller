@@ -159,6 +159,9 @@ ___
   - pre-commit install
   - pre-commit run --all-files
 - CI runs ruff (E,F) and mypy on pushes/PRs (see .github/workflows/ci.yml).
+- Regenerate CLI quickstart GIF with VHS (macOS/Linux):
+  - brew install charmbracelet/tap/vhs
+  - vhs docs/media/cli-quickstart.tape
 
 ## Releases 🚀
 - Auto-build GitHub Release with binaries for macOS/Linux/Windows:
