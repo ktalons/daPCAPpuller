@@ -144,6 +144,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Local test data
+_smoke_data/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -193,6 +196,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# macOS
+.DS_Store
 
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to

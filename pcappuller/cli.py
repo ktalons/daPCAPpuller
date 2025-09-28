@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-PCAPpuller CLI
-Refactored to use pcappuller.core with improved parsing, logging, and optional GUI support (gui_pcappuller.py).
-"""
 from __future__ import annotations
 
 import argparse
@@ -18,7 +13,7 @@ except ImportError:
     print("tqdm not installed. Please run: python3 -m pip install tqdm", file=sys.stderr)
     sys.exit(1)
 
-from pcappuller.core import (
+from .core import (
     Window,
     build_output,
     candidate_files,
@@ -28,10 +23,10 @@ from pcappuller.core import (
     summarize_first_last,
     collect_file_metadata,
 )
-from pcappuller.errors import PCAPPullerError
-from pcappuller.logging_setup import setup_logging
-from pcappuller.time_parse import parse_start_and_window
-from pcappuller.cache import CapinfosCache, default_cache_path
+from .errors import PCAPPullerError
+from .logging_setup import setup_logging
+from .time_parse import parse_start_and_window
+from .cache import CapinfosCache, default_cache_path
 
 
 class ExitCodes:
@@ -179,12 +174,6 @@ def main():
             print("No target PCAP files found after filtering.", file=sys.stderr)
             sys.exit(ExitCodes.OK)
 
-        # Merge/Trim/Filter/Write with progress bars
-        out_path = Path(args.out)
-        # merge batches
-        def pb_phase(phase: str, cur: int, tot: int):
-            pass  # placeholder for potential future CLI pb per phase
-
         # Optional reporting before writing
         if args.report and candidates:
             md = collect_file_metadata(candidates, workers=max(1, workers // 2), cache=cache)
@@ -204,7 +193,7 @@ def main():
         result = build_output(
             candidates,
             window,
-            out_path,
+            Path(args.out),
             Path(args.tmpdir) if args.tmpdir else None,
             args.batch_size,
             args.out_format,
@@ -230,7 +219,3 @@ def main():
                 cache.close()
         except Exception:
             pass
-
-
-if __name__ == "__main__":
-    main()

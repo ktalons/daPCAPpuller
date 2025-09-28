@@ -1,6 +1,6 @@
 # PCAPpuller 👊
 ## A fast PCAP window selector, merger, and trimmer ⏩ 
-> A small Python utility for high-volume packet collections. Point it at a given directory, give it a start time and duration (same day, up to 60 minutes), and it will:
+> A small Python utility for high-volume packet collections. Point it at one or more directories, give it a start time and duration (or end time), and it will:
 - Find candidate files quickly (by filesystem mtime),
 - optionally refine them precisely (via capinfos first/last packet times, in parallel),
 - merge in batches with `mergecap`,
@@ -8,10 +8,21 @@
 - optionally apply a Wireshark display filter with `tshark`,
 - write the result as pcap or pcapng, and optionally gzip the final file,
 - show progress bars throughout,
-- and provide a dry-run mode to preview the selection.
+- and provide a dry-run mode to preview the selection with optional summary.
 ___
 #### Built for speed and scale: low memory, batch merges, parallel metadata scans, and a `--tmpdir` so your `/tmp` doesn’t blow up.
 ___
+## What’s new ✨
+- Refactored into a reusable core library (`pcappuller`) for stability and testability.
+- Deterministic `capinfos` parsing and improved error handling.
+- Flexible datetime parsing (`YYYY-MM-DD HH:MM:SS`, ISO-like, `Z`).
+- `--end` as an alternative to `--minutes` (mutually exclusive).
+- Multiple roots supported: `--root /dir1 /dir2 /dir3`.
+- `--verbose` logging shows external tool commands/output.
+- Dry-run `--summary` prints min/max packet times across survivors (UTC).
+- Optional capinfos metadata cache (enabled by default) to speed up repeated runs.
+- Optional GUI (`gui_pcappuller.py`) with folder pickers, checkboxes, and progress.
+
 ## Features  🧰
 - 2️⃣ Two-phase selection
   - Fast prefilter by file mtime.
@@ -34,6 +45,13 @@ ___
 ___
 ## Prerequisites ☑️
 - **Python 3.8+ and Wireshark CLI tools.**
+- Install via packaging (recommended)
+  - `python3 -m pip install -e .`  (from repo root)
+  - Optional extras: `python3 -m pip install -e .[gui,datetime]`
+- Or install packages manually:
+  - `tqdm` (CLI progress)
+  - `PySimpleGUI` (GUI; optional)
+  - `python-dateutil` (optional for more datetime parsing)
 ___
 > **Debian/Ubuntu**
 > `sudo apt-get update`
@@ -55,24 +73,30 @@ ___
 > **Windows (PowerShell, Admin)**
 > `winget install WiresharkFoundation.Wireshark`
 > `py -m pip install --upgrade tqdm`<br>
-> *add wireshark install dir (e.g. C:\Program Files\Wireshark) to PATH if needed
+> *If Wireshark tools aren’t in PATH, the app will also look in common install dirs.*
 ____
 ## Quick Usage ⭐
-### Basic (required args only)
+### Installed (via console scripts)
+- `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --out out.pcapng`
+- `pcap-puller --root /mnt/dir1 /mnt/dir2 --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS" --out out.pcapng`
+- `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --precise-filter --workers auto --display-filter "dns" --gzip --verbose`
+- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary --report survivors.csv`
+
+### Direct (without install)
 `python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
-### Advanced (precise filter, auto worker, wireshark (dns) filter, gzip, etc)
-`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output_dns.pcap.gz --out-format pcap --tmpdir /big/volume/tmp --batch-size 500 --slop-min 120 --precise-filter --workers auto --display-filter "dns" --gzip`
-### Dry-run (no merge/trim) + write list
-`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --precise-filter --workers auto --dry-run --list-out /path/to/list.csv`
+`python3 PCAPpuller.py --root /mnt/dir1 /mnt/dir2 --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS" --out /path/to/output.pcapng`
+`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output_dns.pcap.gz --out-format pcap --tmpdir /big/volume/tmp --batch-size 500 --slop-min 120 --precise-filter --workers auto --display-filter "dns" --gzip --verbose`
+`python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --precise-filter --workers auto --dry-run --list-out /path/to/list.csv --summary`
 ___
 ## Arguments 💥
 ### Required ❗
-> `--root </root/directory>` — top-level directory to search.<br>
+> `--root </root/directory ...>` — one or more directories to search.<br>
 > `--start "YYYY-MM-DD HH:MM:SS"` — window start (local time).<br>
-> `--minutes <1–60>` — duration; must stay within a single calendar day.<br>
+> `--minutes <1–60>` — duration; must stay within a single calendar day. Or use `--end` with same-day end time.<br>
 > `--out </output/path>` — output file (not required if you use --dry-run).<br>
 ### Optional ❓
-> `--tmpdir </temp/path>` — where to write temporary/intermediate files. **highly recommended** on a large volume (e.g., the NAS).<br>
+> `--end <YYYY-MM-DD HH:MM:SS>` — end time instead of `--minutes` (must be same day as `--start`).<br>
+> `--tmpdir </temp/path>` — where to write temporary/intermediate files. **Highly recommended** on a large volume (e.g., the NAS).<br>
 > `--batch-size <INT>` — files per merge batch (default: 500).<br>
 > `--slop-min <INT>` — mtime prefilter slack minutes (default: 120).<br>
 > `--precise-filter` — use capinfos first/last packet times to keep only overlapping files.<br>
@@ -82,19 +106,48 @@ ___
 > `--gzip` — gzip-compress the final output (writes .gz).<br>
 > `--dry-run` — selection only; no merge/trim/write.<br>
 > `--list-out <FILE.{txt|csv}>` — with `--dry-run`, write survivor list to file.<br>
-> `--debug-capinfos <N>` — Print parsed first/last times for the first N files during precise filter.<br>
+> `--report <FILE.csv>` — write a CSV report for survivors with path,size,mtime,first,last (uses cache/capinfos).<br>
+> `--summary` — with `--dry-run`, print min/max packet times across survivors (UTC).
+> `--verbose` — print debug logs and show external tool output.
+___
+## GUI (optional) 🖥️
+Install:
+- `python3 -m pip install -e .[gui]`
+Run:
+- `pcap-puller-gui`
+Features:
+- Folder pickers for Root and Tmpdir
+- Start time and Minutes selector
+- Checkboxes: Precise filter, Gzip, Dry-run, Verbose
+- Display filter input (Wireshark syntax)
+- Progress bar with Cancel support
 ___
 ## Tips 🗯️ 
 - Use --tmpdir on a large volume (e.g., the NAS) if your /tmp is small.
 - --precise-filter reduces I/O by skipping irrelevant files; tune --workers to match NAS throughput.
+- Metadata caching speeds up repeated runs. Default cache location:
+  - macOS/Linux: ~/.cache/pcappuller/capinfos.sqlite (respects XDG_CACHE_HOME)
+  - Windows: %LOCALAPPDATA%\pcappuller\capinfos.sqlite
+  - Control with `--cache <PATH>`, disable with `--no-cache`, clear with `--clear-cache`.
 - Display filters use Wireshark display syntax (not capture filters).
-- For auditing, run --dry-run --list-out list.csv first.
+- For auditing, run --dry-run --list-out list.csv first; add `--summary` to see min/max packet times.
 ___
+## Development 🛠️
+- Install tooling (in a virtualenv):
+  - python3 -m pip install -e .[gui,datetime]
+  - python3 -m pip install pre-commit ruff mypy
+- Enable pre-commit hooks:
+  - pre-commit install
+  - pre-commit run --all-files
+- CI runs ruff (E,F) and mypy on pushes/PRs (see .github/workflows/ci.yml).
+
 ## Troubleshooting 🚨
 - Temp disk fills up
 > Set --tmpdir to a bigger filesystem. Batch size can be reduced via --batch-size.
 - “No candidate PCAP files found”
 > Try a larger --slop-min, confirm the time window, or test without --precise-filter. Use --dry-run for quick iteration.
+- Tools not found
+> Ensure Wireshark CLI tools are installed and in PATH. On Windows, common install dirs are auto-checked.
 - Permissions with tshark/dumpcap
 > On Linux, add your user to the wireshark group and re-login.
 ___
