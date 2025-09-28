@@ -80,7 +80,11 @@ ____
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --out out.pcapng`
 - `pcap-puller --root /mnt/dir1 /mnt/dir2 --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS" --out out.pcapng`
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --precise-filter --workers auto --display-filter "dns" --gzip --verbose`
-- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary --report survivors.csv`
+- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary`
+
+### CLI quickstart
+- Walkthrough gif:
+  ![CLI Quickstart](docs/media/cli-quickstart.gif)
 
 ### Direct (without install)
 `python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
