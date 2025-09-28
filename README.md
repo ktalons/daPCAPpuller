@@ -152,6 +152,15 @@ ___
   - pre-commit run --all-files
 - CI runs ruff (E,F) and mypy on pushes/PRs (see .github/workflows/ci.yml).
 
+## Releases 🚀
+- Auto-build GitHub Release with binaries for macOS/Linux/Windows:
+  - Bump version in pyproject.toml
+  - Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`
+  - The release workflow (.github/workflows/release.yml) builds PyInstaller GUI binaries and attaches them to the GitHub Release.
+- Manual release with gh (optional):
+  - `gh release create vX.Y.Z --generate-notes --title "vX.Y.Z"`
+  - Attach artifacts if needed.
+
 ## Troubleshooting 🚨
 - Temp disk fills up
 > Set --tmpdir to a bigger filesystem. Batch size can be reduced via --batch-size.
