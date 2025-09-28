@@ -75,6 +75,7 @@ ___
 ## Prerequisites ☑️
 - For the GUI binary: Wireshark CLI tools available on PATH (tshark, mergecap, editcap, capinfos). No Python required.
 - For the CLI (pip install): Python 3.8+ and Wireshark CLI tools.
+- **Note**: PySimpleGUI has moved to a private PyPI server. To install from source, use: `python3 -m pip install --extra-index-url https://PySimpleGUI.net/install PySimpleGUI`
 
 ### Install Wireshark CLI tools
 > Debian/Ubuntu
@@ -142,7 +143,8 @@ ___
 ___
 ## Development 🛠️
 - Install tooling (in a virtualenv):
-  - python3 -m pip install -e .[gui,datetime]
+  - python3 -m pip install -e .[datetime]
+  - python3 -m pip install --extra-index-url https://PySimpleGUI.net/install PySimpleGUI
   - python3 -m pip install pre-commit ruff mypy
 - Enable pre-commit hooks:
   - pre-commit install

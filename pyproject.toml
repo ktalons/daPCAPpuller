@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # pip install .[gui]
+# Note: PySimpleGUI now requires extra-index-url https://PySimpleGUI.net/install
 gui = ["PySimpleGUI"]
 # pip install .[datetime]
 datetime = ["python-dateutil"]

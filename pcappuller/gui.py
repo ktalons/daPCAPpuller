@@ -8,7 +8,7 @@ import datetime as dt
 try:
     import PySimpleGUI as sg
 except Exception:
-    raise SystemExit("PySimpleGUI not installed. Install with: python3 -m pip install PySimpleGUI")
+    raise SystemExit("PySimpleGUI not installed. Install with: python3 -m pip install --extra-index-url https://PySimpleGUI.net/install PySimpleGUI")
 
 from .core import (
     Window,

@@ -1,3 +1,5 @@
 tqdm
+# PySimpleGUI is now on a private PyPI server. Install with:
+# python3 -m pip install --extra-index-url https://PySimpleGUI.net/install PySimpleGUI
 PySimpleGUI  # optional for GUI
 python-dateutil  # optional for flexible datetime parsing
