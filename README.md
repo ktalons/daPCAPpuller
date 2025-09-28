@@ -161,6 +161,17 @@ ___
   - `gh release create vX.Y.Z --generate-notes --title "vX.Y.Z"`
   - Attach artifacts if needed.
 
+## Packaging 📦
+### Homebrew (macOS)
+- Create tap repo (e.g., ktalons/homebrew-tap) and copy packaging/homebrew/Formula/pcappuller.rb
+- Update formula to latest with: `packaging/homebrew/update_formula.sh latest`
+- Tap and install: `brew tap ktalons/tap && brew install pcappuller`
+
+### Linux (.deb, .rpm, .tar.zst)
+- Requires fpm (gem install fpm) and a Linux-built binary (see Release workflow)
+- Build packages: `packaging/linux/build_fpm.sh`
+- Outputs written to packaging/artifacts/
+
 ## Troubleshooting 🚨
 - Temp disk fills up
 > Set --tmpdir to a bigger filesystem. Batch size can be reduced via --batch-size.
