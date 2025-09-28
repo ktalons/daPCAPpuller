@@ -1,0 +1,77 @@
+name: Update Homebrew Formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to update to (e.g., v0.1.0). If empty, use latest release."
+        required: false
+  schedule:
+    - cron: '0 6 * * *'  # daily at 06:00 UTC
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+
+      - name: Set up tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+
+      - name: Determine tag and asset
+        id: meta
+        shell: bash
+        env:
+          OWNER_REPO: ktalons/daPCAPpuller
+          ASSET_NAME: PCAPpullerGUI-macos
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_TAG:-}" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG=$(curl -sSL "https://api.github.com/repos/${OWNER_REPO}/releases/latest" | jq -r .tag_name)
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          URL=$(curl -sSL "https://api.github.com/repos/${OWNER_REPO}/releases/tags/${TAG}" | jq -r ".assets[] | select(.name == \"${ASSET_NAME}\") | .browser_download_url")
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "Asset not found for $TAG" >&2; exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256
+        id: sha
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSLo asset "$${{ steps.meta.outputs.url }}"
+          SHA=$(sha256sum asset | awk '{print $1}')
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Update Formula
+        shell: bash
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          URL: ${{ steps.meta.outputs.url }}
+          SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          FORMULA="Formula/pcappuller.rb"
+          sed -i.bak -e "s/^  version \".*\"/  version \"$VERSION\"/" \
+                      -e "s#^  url \".*\"#  url \"$URL\"#" \
+                      -e "s/^  sha256 \".*\"/  sha256 \"$SHA\"/" "$FORMULA"
+          rm -f "$FORMULA.bak"
+
+      - name: Commit and Push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add Formula/pcappuller.rb
+          git commit -m "brew: update pcappuller to ${{ steps.meta.outputs.tag }}" || echo "No changes"
+          git push
