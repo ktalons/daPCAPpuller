@@ -1,17 +1,46 @@
-# PCAPpuller 👊 [![CI](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/ci.yml) [![Release](https://github.com/ktalons/daPCAPpuller/actions/workflows/release.yml/badge.svg)](https://github.com/ktalons/daPCAPpuller/actions/workflows/release.yml)
-## A fast PCAP window selector, merger, and trimmer ⏩ 
-> A small Python utility for high-volume packet collections. Point it at one or more directories, give it a start time and duration (or end time), and it will:
-- Find candidate files quickly (by filesystem mtime),
-- optionally refine them precisely (via capinfos first/last packet times, in parallel),
-- merge in batches with `mergecap`,
-- trim exactly to the time window with `editcap -A/-B`,
-- optionally apply a Wireshark display filter with `tshark`,
-- write the result as pcap or pcapng, and optionally gzip the final file,
-- show progress bars throughout,
-- and provide a dry-run mode to preview the selection with optional summary.
-___
-#### Built for speed and scale: low memory, batch merges, parallel metadata scans, and a `--tmpdir` so your `/tmp` doesn’t blow up.
-___
+# PCAPpuller 👊
+## A fast PCAP window selector, merger, and trimmer ⏩
+
+PCAPpuller helps you pull just the packets you need from large rolling PCAP collections.
+
+---
+
+## Install the GUI (recommended) 🖥️
+The easiest way to use PCAPpuller is the desktop GUI. Download it from the latest release:
+- https://github.com/ktalons/daPCAPpuller/releases/latest
+
+Requirements for the GUI binary: Wireshark CLI tools (tshark, mergecap, editcap, capinfos) installed on your system PATH. See Install Wireshark CLI tools below if needed.
+
+- macOS
+  1) Download PCAPpullerGUI-macos from the latest release
+  2) Optional: move it to /Applications
+  3) First run: right-click → Open (or: xattr -d com.apple.quarantine /path/to/PCAPpullerGUI-macos)
+
+- Windows
+  1) Download PCAPpullerGUI-windows.exe from the latest release
+  2) If SmartScreen warns, click “More info” → “Run anyway”
+
+- Linux
+  - Portable binary
+    1) Download PCAPpullerGUI-linux
+    2) chmod +x ./PCAPpullerGUI-linux && ./PCAPpullerGUI-linux
+  - Packages
+    - Debian/Ubuntu: sudo dpkg -i pcappuller-gui_*.deb && sudo apt -f install
+    - Fedora/RHEL: sudo rpm -Uvh pcappuller-gui-*.rpm
+
+### Run the GUI
+- macOS/Linux: double-click or run from terminal: ./PCAPpullerGUI-macos or ./PCAPpullerGUI-linux
+- Windows: double-click PCAPpullerGUI-windows.exe
+
+### Quickstart (GUI)
+1) Pick Root folder(s) containing your PCAP/PCAPNG files
+2) Set Start time and Minutes (or use End time via Advanced if available)
+3) Optional: Precise filter, Display filter (Wireshark syntax), Gzip
+4) Choose an output file path
+5) Click Run — progress will appear; cancel anytime
+
+---
+
 ## What’s new ✨
 - Refactored into a reusable core library (`pcappuller`) for stability and testability.
 - Deterministic `capinfos` parsing and improved error handling.
@@ -21,7 +50,7 @@ ___
 - `--verbose` logging shows external tool commands/output.
 - Dry-run `--summary` prints min/max packet times across survivors (UTC).
 - Optional capinfos metadata cache (enabled by default) to speed up repeated runs.
-- Optional GUI (`gui_pcappuller.py`) with folder pickers, checkboxes, and progress.
+- GUI with folder pickers, checkboxes, and progress.
 
 ## Features  🧰
 - 2️⃣ Two-phase selection
@@ -44,47 +73,34 @@ ___
 6. Write as pcap/pcapng, optionally gzip.
 ___
 ## Prerequisites ☑️
-- **Python 3.8+ and Wireshark CLI tools.**
-- Install via packaging (recommended)
-  - `python3 -m pip install -e .`  (from repo root)
-  - Optional extras: `python3 -m pip install -e .[gui,datetime]`
-- Or install packages manually:
-  - `tqdm` (CLI progress)
-  - `PySimpleGUI` (GUI; optional)
-  - `python-dateutil` (optional for more datetime parsing)
-___
-> **Debian/Ubuntu**
-> `sudo apt-get update`
-> `sudo apt-get install wireshark`
-> `python3 -m pip install --upgrade tqdm`
+- For the GUI binary: Wireshark CLI tools available on PATH (tshark, mergecap, editcap, capinfos). No Python required.
+- For the CLI (pip install): Python 3.8+ and Wireshark CLI tools.
+
+### Install Wireshark CLI tools
+> Debian/Ubuntu
+> sudo apt-get update
+> sudo apt-get install wireshark
 #
-> **Manjaro/Arch**
-> `sudo pacman -Syu wireshark`
-> `python3 -m pip install --upgrade tqdm`
+> Manjaro/Arch
+> sudo pacman -Syu wireshark
 # 
-> **Fedora/CentOS/RHEL**
-> `sudo dnf install wireshark`
-> `python3 -m pip install --upgrade tqdm`
+> Fedora/CentOS/RHEL
+> sudo dnf install wireshark
 #
-> **macOS (Homebrew)**
-> `brew install wireshark`
-> `python3 -m pip install --upgrade tqdm`
+> macOS (Homebrew)
+> brew install wireshark
 #
-> **Windows (PowerShell, Admin)**
-> `winget install WiresharkFoundation.Wireshark`
-> `py -m pip install --upgrade tqdm`<br>
-> *If Wireshark tools aren’t in PATH, the app will also look in common install dirs.*
-____
+> Windows (PowerShell, Admin)
+> winget install WiresharkFoundation.Wireshark
+> 
+> If Wireshark CLI tools aren’t in PATH, the app will also look in common install dirs.
+___
 ## Quick Usage ⭐
 ### Installed (via console scripts)
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --out out.pcapng`
 - `pcap-puller --root /mnt/dir1 /mnt/dir2 --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS" --out out.pcapng`
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --precise-filter --workers auto --display-filter "dns" --gzip --verbose`
-- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary`
-
-### CLI quickstart
-- Walkthrough gif:
-  ![CLI Quickstart](docs/media/cli-quickstart.gif)
+- Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary --report survivors.csv`
 
 ### Direct (without install)
 `python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
@@ -114,29 +130,6 @@ ___
 > `--summary` — with `--dry-run`, print min/max packet times across survivors (UTC).
 > `--verbose` — print debug logs and show external tool output.
 ___
-## GUI (optional) 🖥️
-Install:
-- `python3 -m pip install -e .[gui]`
-Run:
-- `pcap-puller-gui`
-Features:
-- Folder pickers for Root and Tmpdir
-- Start time and Minutes selector
-- Checkboxes: Precise filter, Gzip, Dry-run, Verbose
-- Display filter input (Wireshark syntax)
-- Progress bar with Cancel support
-
-### Single-file GUI build (PyInstaller)
-- Install: `python3 -m pip install pyinstaller`
-- Build (macOS/Windows/Linux):
-  - `pyinstaller --onefile --windowed --name PCAPpullerGUI gui_pcappuller.py`
-- Output:
-  - macOS/Linux: `dist/PCAPpullerGUI`
-  - Windows: `dist/PCAPpullerGUI.exe`
-Notes:
-- This bundles the Python app; Wireshark CLI tools must still be installed on the system PATH.
-- On macOS, you may need to allow the binary in System Settings > Privacy & Security (Gatekeeper).
-___
 ## Tips 🗯️ 
 - Use --tmpdir on a large volume (e.g., the NAS) if your /tmp is small.
 - --precise-filter reduces I/O by skipping irrelevant files; tune --workers to match NAS throughput.
@@ -146,10 +139,6 @@ ___
   - Control with `--cache <PATH>`, disable with `--no-cache`, clear with `--clear-cache`.
 - Display filters use Wireshark display syntax (not capture filters).
 - For auditing, run --dry-run --list-out list.csv first; add `--summary` to see min/max packet times.
-
-### Verify prerequisites quickly
-- Run: `scripts/verify_wireshark_tools.sh`
-- Checks presence of mergecap, editcap, capinfos, tshark and prints OS-specific install hints.
 ___
 ## Development 🛠️
 - Install tooling (in a virtualenv):
@@ -159,29 +148,6 @@ ___
   - pre-commit install
   - pre-commit run --all-files
 - CI runs ruff (E,F) and mypy on pushes/PRs (see .github/workflows/ci.yml).
-- Regenerate CLI quickstart GIF with VHS (macOS/Linux):
-  - brew install charmbracelet/tap/vhs
-  - vhs docs/media/cli-quickstart.tape
-
-## Releases 🚀
-- Auto-build GitHub Release with binaries for macOS/Linux/Windows:
-  - Bump version in pyproject.toml
-  - Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`
-  - The release workflow (.github/workflows/release.yml) builds PyInstaller GUI binaries and attaches them to the GitHub Release.
-- Manual release with gh (optional):
-  - `gh release create vX.Y.Z --generate-notes --title "vX.Y.Z"`
-  - Attach artifacts if needed.
-
-## Packaging 📦
-### Homebrew (macOS)
-- Create tap repo (e.g., ktalons/homebrew-tap) and copy packaging/homebrew/Formula/pcappuller.rb
-- Update formula to latest with: `packaging/homebrew/update_formula.sh latest`
-- Tap and install: `brew tap ktalons/tap && brew install pcappuller`
-
-### Linux (.deb, .rpm, .tar.zst)
-- Requires fpm (gem install fpm) and a Linux-built binary (see Release workflow)
-- Build packages: `packaging/linux/build_fpm.sh`
-- Outputs written to packaging/artifacts/
 
 ## Troubleshooting 🚨
 - Temp disk fills up
