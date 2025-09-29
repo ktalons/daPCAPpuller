@@ -110,8 +110,3 @@ jobs:
           token: ${{ github.token }}
           files: artifacts/**
 
-      - name: Check token scopes
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          curl -sI -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/user | tr -d '\r' | grep -i '^x-oauth-scopes\|^status'
