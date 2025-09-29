@@ -27,18 +27,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-          pip install -e .[gui,datetime]
+          pip install -e .[datetime]
+          # PySimpleGUI requires private index
+          pip install --extra-index-url https://PySimpleGUI.net/install PySimpleGUI
 
       - name: Build GUI binary
         shell: bash
         run: |
-          pyinstaller --onefile --windowed --name PCAPpullerGUI gui_pcappuller.py
+          set -euxo pipefail
           mkdir -p release
           if [ "$RUNNER_OS" = "Windows" ]; then
+            pyinstaller --onefile --windowed --name PCAPpullerGUI gui_pcappuller.py
             mv dist/PCAPpullerGUI.exe "release/PCAPpullerGUI-windows.exe"
           elif [ "$RUNNER_OS" = "macOS" ]; then
-            mv dist/PCAPpullerGUI "release/PCAPpullerGUI-macos"
+            # Build a proper .app so Finder runs it correctly
+            pyinstaller --windowed --name PCAPpullerGUI gui_pcappuller.py
+            (cd dist && zip -r ../release/PCAPpullerGUI-macos.zip PCAPpullerGUI.app)
           else
+            pyinstaller --onefile --windowed --name PCAPpullerGUI gui_pcappuller.py
             mv dist/PCAPpullerGUI "release/PCAPpullerGUI-linux"
           fi
 
@@ -82,6 +88,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:

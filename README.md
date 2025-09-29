@@ -12,9 +12,18 @@ The easiest way to use PCAPpuller is the desktop GUI. Download it from the lates
 Requirements for the GUI binary: Wireshark CLI tools (tshark, mergecap, editcap, capinfos) installed on your system PATH. See Install Wireshark CLI tools below if needed.
 
 - macOS
-  1) Download PCAPpullerGUI-macos from the latest release
-  2) Optional: move it to /Applications
-  3) First run: right-click → Open (or: xattr -d com.apple.quarantine /path/to/PCAPpullerGUI-macos)
+  - If you downloaded a .app bundle (recommended):
+    1) Download PCAPpullerGUI-macos.zip and extract PCAPpullerGUI.app
+    2) Optional: move PCAPpullerGUI.app to /Applications
+    3) First run: right-click → Open (or: xattr -dr com.apple.quarantine "/Applications/PCAPpullerGUI.app" or "/path/to/PCAPpullerGUI.app")
+  - If you downloaded a single-file binary (no .app):
+    1) Download PCAPpullerGUI-macos
+    2) In Terminal:
+       - chmod +x "/path/to/PCAPpullerGUI-macos"
+       - xattr -d com.apple.quarantine "/path/to/PCAPpullerGUI-macos"  # if needed
+    3) Run it from Terminal to avoid TextEdit opening it as a text file:
+       - ./PCAPpullerGUI-macos
+       - or: open -a Terminal "/path/to/PCAPpullerGUI-macos"
 
 - Windows
   1) Download PCAPpullerGUI-windows.exe from the latest release
@@ -29,7 +38,10 @@ Requirements for the GUI binary: Wireshark CLI tools (tshark, mergecap, editcap,
     - Fedora/RHEL: sudo rpm -Uvh pcappuller-gui-*.rpm
 
 ### Run the GUI
-- macOS/Linux: double-click or run from terminal: ./PCAPpullerGUI-macos or ./PCAPpullerGUI-linux
+- macOS: 
+  - If you have PCAPpullerGUI.app: double-click it (or right-click → Open on first run)
+  - If you have a single-file binary: run from Terminal: ./PCAPpullerGUI-macos (use chmod +x first if needed)
+- Linux: run from Terminal: ./PCAPpullerGUI-linux (use chmod +x first)
 - Windows: double-click PCAPpullerGUI-windows.exe
 
 ### Quickstart (GUI)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Build single-file GUI binary with PyInstaller
+# Build GUI binary/app with PyInstaller
 # Usage: scripts/build_gui.sh
 
 if ! command -v pyinstaller >/dev/null 2>&1; then
@@ -12,8 +12,18 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PROJECT_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$PROJECT_ROOT"
 
-pyinstaller --onefile --windowed \
-  --name PCAPpullerGUI \
-  gui_pcappuller.py
+PLATFORM=$(uname -s)
 
-echo "Build complete. See dist/PCAPpullerGUI (or .exe on Windows)."
+if [[ "$PLATFORM" == "Darwin" ]]; then
+  # On macOS, prefer an .app bundle so Finder launches it as an application
+  pyinstaller --windowed \
+    --name PCAPpullerGUI \
+    gui_pcappuller.py
+  echo "Build complete. See dist/PCAPpullerGUI.app"
+else
+  # On Linux/Windows, onefile binaries are convenient
+  pyinstaller --onefile --windowed \
+    --name PCAPpullerGUI \
+    gui_pcappuller.py
+  echo "Build complete. See dist/PCAPpullerGUI (or PCAPpullerGUI.exe on Windows)."
+fi
