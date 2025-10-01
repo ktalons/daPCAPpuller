@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=PCAPpuller
-GenericName=PCAP window selector, merger, trimmer
-Comment=Select PCAPs by time and merge/trim with optional Wireshark display filter
-Exec=pcappuller-gui
-Terminal=false
-Type=Application
-Categories=Network;Utility;
-Icon=utilities-network

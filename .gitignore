@@ -1,3 +1,25 @@
+# Python build and env
+__pycache__/
+*.pyc
+.venv/
+
+# PyInstaller
+/build/
+/dist/
+/*.spec
+
+# Packaging outputs
+packaging/artifacts/
+.debstage/
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+*.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
