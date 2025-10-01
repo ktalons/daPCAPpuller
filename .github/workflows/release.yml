@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -e .[datetime]
+          # PySimpleGUI requires private index
+          pip install --extra-index-url https://PySimpleGUI.net/install PySimpleGUI
+
+      - name: Prepare icons
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p artifacts/icons
+          if [ -f assets/icons/pcappuller.png ]; then
+            # Linux does not embed icon, but Windows/macOS will use .ico/.icns
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              echo Using ImageMagick to create .ico
+              magick convert assets/icons/pcappuller.png -resize 256x256 artifacts/icons/pcappuller.ico
+            elif [ "$RUNNER_OS" = "macOS" ]; then
+              echo Building .icns from .iconset
+              ICONSET=artifacts/icons/pcappuller.iconset
+              mkdir -p "$ICONSET"
+              sips -z 16 16     assets/icons/pcappuller.png --out "$ICONSET/icon_16x16.png"
+              sips -z 32 32     assets/icons/pcappuller.png --out "$ICONSET/icon_16x16@2x.png"
+              sips -z 32 32     assets/icons/pcappuller.png --out "$ICONSET/icon_32x32.png"
+              sips -z 64 64     assets/icons/pcappuller.png --out "$ICONSET/icon_32x32@2x.png"
+              sips -z 128 128   assets/icons/pcappuller.png --out "$ICONSET/icon_128x128.png"
+              sips -z 256 256   assets/icons/pcappuller.png --out "$ICONSET/icon_128x128@2x.png"
+              sips -z 256 256   assets/icons/pcappuller.png --out "$ICONSET/icon_256x256.png"
+              sips -z 512 512   assets/icons/pcappuller.png --out "$ICONSET/icon_256x256@2x.png"
+              sips -z 512 512   assets/icons/pcappuller.png --out "$ICONSET/icon_512x512.png"
+              cp assets/icons/pcappuller.png "$ICONSET/icon_512x512@2x.png" || true
+              iconutil -c icns "$ICONSET" -o artifacts/icons/pcappuller.icns
+            fi
+          fi
+
+      - name: Build GUI binary
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            if [ -f artifacts/icons/pcappuller.ico ]; then ICON="--icon artifacts/icons/pcappuller.ico"; else ICON=""; fi
+            pyinstaller --onefile --windowed $ICON --name PCAPpullerGUI gui_pcappuller.py
+            mv dist/PCAPpullerGUI.exe "release/PCAPpullerGUI-windows.exe"
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            # Build a proper .app so Finder runs it correctly
+            if [ -f artifacts/icons/pcappuller.icns ]; then ICON="--icon artifacts/icons/pcappuller.icns"; else ICON=""; fi
+            pyinstaller --windowed $ICON --name PCAPpullerGUI gui_pcappuller.py
+            (cd dist && zip -r ../release/PCAPpullerGUI-macos.zip PCAPpullerGUI.app)
+          else
+            pyinstaller --onefile --windowed --name PCAPpullerGUI gui_pcappuller.py
+            mv dist/PCAPpullerGUI "release/PCAPpullerGUI-linux"
+          fi
+
+      - name: Build DEB/RPM (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ruby-full build-essential rpm
+          sudo gem install --no-document fpm
+          VERSION=$(grep -E '^version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
+          STAGE=$(mktemp -d)
+          mkdir -p "$STAGE/usr/local/bin"
+          install -m 0755 release/PCAPpullerGUI-linux "$STAGE/usr/local/bin/pcappuller-gui"
+          NAME=pcappuller-gui
+          DESC="PCAPpuller GUI: fast PCAP window selector, merger, trimmer"
+          URL="https://github.com/ktalons/daPCAPpuller"
+          LICENSE=MIT
+          MAINTAINER="Kyle Versluis"
+          # deb
+          fpm -s dir -t deb -n "$NAME" -v "$VERSION" \
+            --license "$LICENSE" --url "$URL" --maintainer "$MAINTAINER" \
+            --description "$DESC" \
+            -C "$STAGE" --prefix / \
+            -p "release/${NAME}_${VERSION}_amd64.deb"
+          # rpm
+          fpm -s dir -t rpm -n "$NAME" -v "$VERSION" \
+            --license "$LICENSE" --url "$URL" --maintainer "$MAINTAINER" \
+            --description "$DESC" \
+            -C "$STAGE" --prefix / \
+            -p "release/${NAME}-${VERSION}-1.x86_64.rpm"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-binaries-${{ matrix.os }}
+          path: release/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: gui-binaries-*
+          merge-multiple: true
+
+      - name: Build Analyst Guide PDF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-recommended texlive-fonts-recommended
+          pandoc docs/Analyst-Guide.md -o artifacts/Analyst-Guide.pdf || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ github.token }}
+          files: artifacts/**
+

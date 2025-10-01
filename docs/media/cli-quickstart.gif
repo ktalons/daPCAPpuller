@@ -1,0 +1,9 @@
+Placeholder for CLI quickstart GIF.
+
+Replace this file by adding a real GIF at this path:
+  docs/media/cli-quickstart.gif
+
+Suggested tools to record:
+- asciinema + agg (casts to GIF)
+- Terminalizer
+- peek (Linux)

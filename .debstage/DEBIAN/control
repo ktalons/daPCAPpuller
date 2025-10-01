@@ -1,0 +1,7 @@
+Package: pcappuller-gui
+Version: 0.1.4
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Kyle Versluis
+Description: PCAPpuller GUI: fast PCAP window selector, merger, trimmer
