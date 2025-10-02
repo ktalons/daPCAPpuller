@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import os
 import shutil
@@ -8,10 +9,9 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence, Tuple, Dict
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
-import datetime as dt
-
+from .cache import CapinfosCache
 from .errors import PCAPPullerError
 from .tools import (
     capinfos_epoch_bounds,
@@ -21,7 +21,6 @@ from .tools import (
     run_tshark_filter,
     which_or_error,
 )
-from .cache import CapinfosCache
 
 ProgressFn = Callable[[str, int, int], None]  # phase, current, total
 

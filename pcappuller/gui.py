@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import datetime as dt
 import threading
 import traceback
 from pathlib import Path
-import datetime as dt
 
 try:
     import PySimpleGUI as sg
@@ -18,9 +18,9 @@ from .core import (
     parse_workers,
     precise_filter_parallel,
 )
-from .time_parse import parse_dt_flexible
 from .errors import PCAPPullerError
 from .filters import COMMON_FILTERS, FILTER_EXAMPLES
+from .time_parse import parse_dt_flexible
 
 
 def _open_advanced_settings(parent: "sg.Window", reco: dict, current: dict | None) -> dict | None:

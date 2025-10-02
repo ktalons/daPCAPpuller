@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Tuple, Optional, cast
+from typing import Optional, Tuple, cast
 
 try:
     from dateutil import parser as dateutil_parser  # optional
