@@ -4,7 +4,7 @@ from typing import Optional, Tuple, cast
 try:
     from dateutil import parser as dateutil_parser  # optional
 except Exception:
-    dateutil_parser = None
+    dateutil_parser = None  # type: ignore
 
 
 class TimeParseError(ValueError):
@@ -36,8 +36,8 @@ def parse_dt_flexible(s: str) -> dt.datetime:
         try:
             dv = dateutil_parser.parse(s)
             if dv.tzinfo:
-                return cast(dt.datetime, dv.astimezone(tz=None).replace(tzinfo=None))
-            return cast(dt.datetime, dv)
+                return dv.astimezone(tz=None).replace(tzinfo=None)
+            return dv
         except Exception:
             pass
     raise TimeParseError(f"Invalid datetime format: {s}. Use 'YYYY-MM-DD HH:MM:SS' or ISO-like.")

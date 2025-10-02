@@ -108,7 +108,7 @@ def _open_filters_dialog(parent: "sg.Window") -> str | None:
         [sg.Button("Insert"), sg.Button("Close")],
     ]
     win = sg.Window("Display Filters", layout, modal=True, keep_on_top=True)
-    selected = None
+    selected: str | None = None
     current = entries
     while True:
         ev, vals = win.read()
@@ -133,7 +133,7 @@ def _open_filters_dialog(parent: "sg.Window") -> str | None:
     return None
 
 
-def run_puller(values, window: "sg.Window", stop_flag, adv_overrides: dict | None):
+def run_puller(values: dict, window: "sg.Window", stop_flag: dict, adv_overrides: dict | None) -> None:
     try:
         start = parse_dt_flexible(values["-START-"])
         # Hours/Minutes sliders
