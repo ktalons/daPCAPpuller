@@ -49,9 +49,13 @@ def parse_start_and_window(start_str: str, minutes: Optional[int], end_str: Opti
     start = parse_dt_flexible(start_str)
     if end_str:
         end = parse_dt_flexible(end_str)
+        if end.date() != start.date():
+            raise TimeParseError("Window crosses midnight. Choose a window within a single calendar day.")
     else:
         assert minutes is not None
-        end = start + dt.timedelta(minutes=int(minutes))
-    if start.date() != end.date():
-        raise TimeParseError("Window crosses midnight. Choose a window within a single calendar day.")
+        mins = int(minutes)
+        end = start + dt.timedelta(minutes=mins)
+        # Clamp to end-of-day if duration crosses midnight
+        if end.date() != start.date():
+            end = dt.datetime.combine(start.date(), dt.time(23, 59, 59, 999999))
     return start, end

@@ -45,7 +45,7 @@ class ExitCodes:
 
 def parse_args():
     ap = argparse.ArgumentParser(
-        description="Select PCAPs by date/time and merge into a single file (<=60 minutes, single calendar day).",
+        description="Select PCAPs by date/time and merge into a single file (up to 24 hours within a single calendar day).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument(
@@ -56,8 +56,8 @@ def parse_args():
     )
     ap.add_argument("--start", required=True, help="Start datetime: 'YYYY-MM-DD HH:MM:SS' (local time).")
     group = ap.add_mutually_exclusive_group(required=True)
-    group.add_argument("--minutes", type=int, help="Duration in minutes (1-60).")
-    group.add_argument("--end", help="End datetime (same calendar day as start).")
+    group.add_argument("--minutes", type=int, help="Duration in minutes (1-1440). Clamped to end-of-day if it would cross midnight.")
+    group.add_argument("--end", help="End datetime (must be same calendar day as start).")
 
     ap.add_argument("--out", help="Output path (required unless --dry-run).")
     ap.add_argument("--batch-size", type=int, default=500, help="Files per merge batch.")
@@ -69,6 +69,7 @@ def parse_args():
     ap.add_argument("--out-format", choices=["pcap", "pcapng"], default="pcapng", help="Final capture format.")
     ap.add_argument("--gzip", action="store_true", help="Compress final output to .gz (recommended to use .gz extension).")
     ap.add_argument("--dry-run", action="store_true", help="Preview survivors and exit (no merge/trim).")
+    ap.add_argument("--trim-per-batch", action="store_true", help="Trim each merge batch before final merge (reduces temp size for long windows).")
     ap.add_argument("--list-out", default=None, help="With --dry-run, write survivors to FILE (.txt or .csv).")
     ap.add_argument("--debug-capinfos", type=int, default=0, help="Print parsed capinfos times for first N files (verbose only).")
     ap.add_argument("--summary", action="store_true", help="With --dry-run, print min/max packet times across survivors.")
@@ -83,8 +84,8 @@ def parse_args():
     if not args.dry_run and not args.out:
         ap.error("--out is required unless --dry-run is set.")
 
-    if args.minutes is not None and not (1 <= args.minutes <= 60):
-        ap.error("--minutes must be between 1 and 60.")
+    if args.minutes is not None and not (1 <= args.minutes <= 1440):
+        ap.error("--minutes must be between 1 and 1440.")
     return args
 
 
@@ -201,6 +202,9 @@ def main():
                     w.writerow([str(r["path"]), r["size"], r["mtime"], m_utc, r["first"], r["last"], fu, lu])
             print(f"Wrote report to: {outp}")
 
+        duration_minutes = int((window.end - window.start).total_seconds() // 60)
+        trim_per_batch = args.trim_per_batch or (duration_minutes > 60)
+
         result = build_output(
             candidates,
             window,
@@ -212,6 +216,7 @@ def main():
             args.gzip,
             progress=None,
             verbose=args.verbose,
+            trim_per_batch=trim_per_batch,
         )
         print(f"Done. Wrote: {result}")
         if cache:

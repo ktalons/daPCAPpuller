@@ -20,9 +20,13 @@ fi
 
 BIN_SRC="dist/PCAPpullerGUI-linux"
 if [[ ! -f "$BIN_SRC" ]]; then
-  echo "Linux GUI binary not found at $BIN_SRC" >&2
-  echo "Build it first on Linux CI using PyInstaller (see .github/workflows/release.yml)" >&2
-  exit 1
+  if [[ -f "dist/PCAPpullerGUI" ]]; then
+    BIN_SRC="dist/PCAPpullerGUI"
+  else
+    echo "Linux GUI binary not found at dist/PCAPpullerGUI-linux or dist/PCAPpullerGUI" >&2
+    echo "Build it first using PyInstaller: scripts/build_gui.sh" >&2
+    exit 1
+  fi
 fi
 
 STAGE=$(mktemp -d)
@@ -31,7 +35,42 @@ mkdir -p "$STAGE/usr/local/bin"
 cp "$BIN_SRC" "$STAGE/usr/local/bin/pcappuller-gui"
 chmod 0755 "$STAGE/usr/local/bin/pcappuller-gui"
 
-OUTDIR="packaging/artifacts"
+# Desktop entry for application menu integration
+mkdir -p "$STAGE/usr/share/applications"
+ICON_NAME="pcappuller"
+cat > "$STAGE/usr/share/applications/pcappuller-gui.desktop" <<'EOF'
+[Desktop Entry]
+Name=PCAPpuller
+GenericName=PCAP window selector, merger, trimmer
+Comment=Select PCAPs by time and merge/trim with optional Wireshark display filter
+Exec=pcappuller-gui
+Terminal=false
+Type=Application
+Categories=Network;Utility;
+Icon=pcappuller
+EOF
+
+# Install application icon(s) if available at assets/icons/pcappuller.png (or assets/icons/pcap.png)
+SRC_ICON=""
+if [[ -f "assets/icons/pcappuller.png" ]]; then
+  SRC_ICON="assets/icons/pcappuller.png"
+elif [[ -f "assets/icons/pcap.png" ]]; then
+  SRC_ICON="assets/icons/pcap.png"
+fi
+if [[ -n "$SRC_ICON" ]]; then
+  mkdir -p "$STAGE/usr/share/icons/hicolor/512x512/apps" "$STAGE/usr/share/icons/hicolor/256x256/apps"
+  # Try to generate sizes with convert; otherwise copy as-is
+  if command -v convert >/dev/null 2>&1; then
+    convert "$SRC_ICON" -resize 512x512 "$STAGE/usr/share/icons/hicolor/512x512/apps/${ICON_NAME}.png"
+    convert "$SRC_ICON" -resize 256x256 "$STAGE/usr/share/icons/hicolor/256x256/apps/${ICON_NAME}.png"
+  else
+    cp "$SRC_ICON" "$STAGE/usr/share/icons/hicolor/512x512/apps/${ICON_NAME}.png"
+  fi
+else
+  echo "Warning: no icon found at assets/icons/pcappuller.png or assets/icons/pcap.png; proceeding without icon" >&2
+fi
+
+OUTDIR="$ROOT_DIR/packaging/artifacts"
 mkdir -p "$OUTDIR"
 
 NAME="pcappuller-gui"

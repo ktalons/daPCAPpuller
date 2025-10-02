@@ -58,17 +58,40 @@ class Window:
     end: dt.datetime
 
 
-def candidate_files(roots: Sequence[Path], window: Window, slop_min: int) -> List[Path]:
+def candidate_files(
+    roots: Sequence[Path],
+    window: Window,
+    slop_min: int,
+    progress: Optional[ProgressFn] = None,
+) -> List[Path]:
+    """
+    Walk roots and select candidate PCAP files by mtime prefilter.
+    If progress is provided, emit heartbeat updates during the scan to keep UIs responsive.
+    """
     lower = window.start - dt.timedelta(minutes=slop_min)
     upper = window.end + dt.timedelta(minutes=slop_min)
     lower_ts = lower.timestamp()
     upper_ts = upper.timestamp()
 
     files: List[Path] = []
+    seen = 0
+    if progress:
+        try:
+            progress("scan-start", 0, 0)
+        except Exception:
+            # Do not fail scan if progress callback raises
+            pass
     for root in roots:
         if not root.is_dir():
             raise PCAPPullerError(f"--root '{root}' is not a directory")
         for dirpath, _, filenames in os.walk(root, followlinks=False):
+            # Heartbeat per directory
+            seen += len(filenames)
+            if progress and seen % 200 == 0:
+                try:
+                    progress("scan", seen, 0)
+                except Exception:
+                    pass
             for fn in filenames:
                 if Path(fn).suffix.lower() in PCAP_EXTS:
                     full = Path(dirpath) / fn
@@ -78,6 +101,11 @@ def candidate_files(roots: Sequence[Path], window: Window, slop_min: int) -> Lis
                         continue
                     if lower_ts <= st.st_mtime <= upper_ts:
                         files.append(full)
+    if progress:
+        try:
+            progress("scan-done", len(files), len(files))
+        except Exception:
+            pass
     return files
 
 
@@ -160,6 +188,7 @@ def build_output(
     gzip_out: bool,
     progress: Optional[ProgressFn] = None,
     verbose: bool = False,
+    trim_per_batch: bool = False,
 ) -> Path:
     if not candidates:
         raise PCAPPullerError("No target PCAP files found after filtering.")
@@ -180,31 +209,48 @@ def build_output(
             for i, batch in enumerate(batches, 1):
                 interm = tmpdir_path / f"batch_{i:05d}.pcapng"
                 merge_batch(batch, interm, verbose=verbose)
-                intermediate_files.append(interm)
+                if trim_per_batch:
+                    # Trim this batch now to reduce size
+                    trimmed_batch = tmpdir_path / f"batch_{i:05d}_trimmed.{out_format}"
+                    run_editcap_trim(interm, trimmed_batch, window.start, window.end, out_format, verbose=verbose)
+                    if progress:
+                        progress("trim-batches", i, len(batches))
+                    intermediate_files.append(trimmed_batch)
+                else:
+                    intermediate_files.append(interm)
                 if progress:
                     progress("merge-batches", i, len(batches))
 
-            # Combine to one file
-            if len(intermediate_files) == 1:
-                merged_all = intermediate_files[0]
+            if trim_per_batch:
+                # Combine already-trimmed batches; no further global trim required
+                if len(intermediate_files) == 1:
+                    trimmed_all = intermediate_files[0]
+                else:
+                    trimmed_all = tmpdir_path / f"merged_all_trimmed.{out_format}"
+                    merge_batch(intermediate_files, trimmed_all, verbose=verbose)
+                src_for_filter = trimmed_all
             else:
-                merged_all = tmpdir_path / "merged_all.pcapng"
-                merge_batch(intermediate_files, merged_all, verbose=verbose)
-
-            # Trim to time window in desired format
-            trimmed = tmpdir_path / f"trimmed.{out_format}"
-            run_editcap_trim(merged_all, trimmed, window.start, window.end, out_format, verbose=verbose)
-            if progress:
-                progress("trim", 1, 1)
+                # Combine to one file then trim once
+                if len(intermediate_files) == 1:
+                    merged_all = intermediate_files[0]
+                else:
+                    merged_all = tmpdir_path / "merged_all.pcapng"
+                    merge_batch(intermediate_files, merged_all, verbose=verbose)
+                # Trim to time window in desired format
+                trimmed = tmpdir_path / f"trimmed.{out_format}"
+                run_editcap_trim(merged_all, trimmed, window.start, window.end, out_format, verbose=verbose)
+                if progress:
+                    progress("trim", 1, 1)
+                src_for_filter = trimmed
 
             # Optional display filter via tshark
             final_uncompressed = tmpdir_path / f"final.{out_format}"
             if display_filter:
-                run_tshark_filter(trimmed, final_uncompressed, display_filter, out_format, verbose=verbose)
+                run_tshark_filter(src_for_filter, final_uncompressed, display_filter, out_format, verbose=verbose)
                 if progress:
                     progress("display-filter", 1, 1)
             else:
-                shutil.copy2(trimmed, final_uncompressed)
+                shutil.copy2(src_for_filter, final_uncompressed)
 
             # Optional gzip compression
             if gzip_out:
