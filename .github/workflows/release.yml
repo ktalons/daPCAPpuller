@@ -36,25 +36,27 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p artifacts/icons
-          if [ -f assets/icons/pcappuller.png ]; then
+          ICON_SRC="assets/icons/pcappuller.png"
+          if [ ! -f "$ICON_SRC" ] && [ -f assets/icons/pcap.png ]; then ICON_SRC="assets/icons/pcap.png"; fi
+          if [ -f "$ICON_SRC" ]; then
             # Linux does not embed icon, but Windows/macOS will use .ico/.icns
             if [ "$RUNNER_OS" = "Windows" ]; then
-              echo Using ImageMagick to create .ico
-              magick convert assets/icons/pcappuller.png -resize 256x256 artifacts/icons/pcappuller.ico
+              echo Using ImageMagick to create .ico from $ICON_SRC
+              magick convert "$ICON_SRC" -resize 256x256 artifacts/icons/pcappuller.ico
             elif [ "$RUNNER_OS" = "macOS" ]; then
-              echo Building .icns from .iconset
+              echo Building .icns from .iconset using $ICON_SRC
               ICONSET=artifacts/icons/pcappuller.iconset
               mkdir -p "$ICONSET"
-              sips -z 16 16     assets/icons/pcappuller.png --out "$ICONSET/icon_16x16.png"
-              sips -z 32 32     assets/icons/pcappuller.png --out "$ICONSET/icon_16x16@2x.png"
-              sips -z 32 32     assets/icons/pcappuller.png --out "$ICONSET/icon_32x32.png"
-              sips -z 64 64     assets/icons/pcappuller.png --out "$ICONSET/icon_32x32@2x.png"
-              sips -z 128 128   assets/icons/pcappuller.png --out "$ICONSET/icon_128x128.png"
-              sips -z 256 256   assets/icons/pcappuller.png --out "$ICONSET/icon_128x128@2x.png"
-              sips -z 256 256   assets/icons/pcappuller.png --out "$ICONSET/icon_256x256.png"
-              sips -z 512 512   assets/icons/pcappuller.png --out "$ICONSET/icon_256x256@2x.png"
-              sips -z 512 512   assets/icons/pcappuller.png --out "$ICONSET/icon_512x512.png"
-              cp assets/icons/pcappuller.png "$ICONSET/icon_512x512@2x.png" || true
+              sips -z 16 16     "$ICON_SRC" --out "$ICONSET/icon_16x16.png"
+              sips -z 32 32     "$ICON_SRC" --out "$ICONSET/icon_16x16@2x.png"
+              sips -z 32 32     "$ICON_SRC" --out "$ICONSET/icon_32x32.png"
+              sips -z 64 64     "$ICON_SRC" --out "$ICONSET/icon_32x32@2x.png"
+              sips -z 128 128   "$ICON_SRC" --out "$ICONSET/icon_128x128.png"
+              sips -z 256 256   "$ICON_SRC" --out "$ICONSET/icon_128x128@2x.png"
+              sips -z 256 256   "$ICON_SRC" --out "$ICONSET/icon_256x256.png"
+              sips -z 512 512   "$ICON_SRC" --out "$ICONSET/icon_256x256@2x.png"
+              sips -z 512 512   "$ICON_SRC" --out "$ICONSET/icon_512x512.png"
+              cp "$ICON_SRC" "$ICONSET/icon_512x512@2x.png" || true
               iconutil -c icns "$ICONSET" -o artifacts/icons/pcappuller.icns
             fi
           fi

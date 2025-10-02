@@ -1,6 +1,8 @@
-Place your application icon PNG here, named exactly:
+Place your application icon PNG here:
 
-  pcappuller.png
+  pcappuller.png  (preferred)
+  or
+  pcap.png        (also accepted by build scripts)
 
 Recommendations:
 - Size: 512x512 (square), RGBA

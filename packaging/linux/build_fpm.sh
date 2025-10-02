@@ -50,9 +50,14 @@ Categories=Network;Utility;
 Icon=pcappuller
 EOF
 
-# Install application icon(s) if available at assets/icons/pcappuller.png
-SRC_ICON="assets/icons/pcappuller.png"
-if [[ -f "$SRC_ICON" ]]; then
+# Install application icon(s) if available at assets/icons/pcappuller.png (or assets/icons/pcap.png)
+SRC_ICON=""
+if [[ -f "assets/icons/pcappuller.png" ]]; then
+  SRC_ICON="assets/icons/pcappuller.png"
+elif [[ -f "assets/icons/pcap.png" ]]; then
+  SRC_ICON="assets/icons/pcap.png"
+fi
+if [[ -n "$SRC_ICON" ]]; then
   mkdir -p "$STAGE/usr/share/icons/hicolor/512x512/apps" "$STAGE/usr/share/icons/hicolor/256x256/apps"
   # Try to generate sizes with convert; otherwise copy as-is
   if command -v convert >/dev/null 2>&1; then
@@ -61,6 +66,8 @@ if [[ -f "$SRC_ICON" ]]; then
   else
     cp "$SRC_ICON" "$STAGE/usr/share/icons/hicolor/512x512/apps/${ICON_NAME}.png"
   fi
+else
+  echo "Warning: no icon found at assets/icons/pcappuller.png or assets/icons/pcap.png; proceeding without icon" >&2
 fi
 
 OUTDIR="$ROOT_DIR/packaging/artifacts"
