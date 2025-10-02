@@ -115,6 +115,16 @@ ___
 - `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --precise-filter --workers auto --display-filter "dns" --gzip --verbose`
 - Dry-run: `pcap-puller --root /mnt/dir --start "YYYY-MM-DD HH:MM:SS" --minutes 15 --dry-run --list-out list.csv --summary --report survivors.csv`
 
+### Clean a large/processed capture
+- Convert to classic pcap when possible (drops pcapng metadata), reorder by timestamp, truncate payloads, and optionally filter/split:
+  - `pcap-clean --input /path/to/big.pcapng --snaplen 256 --filter "tcp || udp || icmp || icmpv6" --split-seconds 60`
+- Keep original format (pcapng) and just reorder + snaplen:
+  - `pcap-clean --input /path/to/big.pcapng --keep-format --snaplen 128`
+- Trim to a time window and then filter to a host/port:
+  - `pcap-clean --input /path/file.pcap --start "2025-10-02 10:00:00" --end "2025-10-02 10:15:00" --filter "ip.addr==10.0.0.5 && tcp.port==443"`
+- Output directory (default: `<input>_clean`) can be customized:
+  - `pcap-clean --input /path/file.pcapng --out-dir /tmp/cleaned/ --snaplen 256`
+
 ### Direct (without install)
 `python3 PCAPpuller.py --root /mnt/your-rootdir --start "YYYY-MM-DD HH:MM:SS" --minutes <1-60> --out /path/to/output.pcapng`
 `python3 PCAPpuller.py --root /mnt/dir1 /mnt/dir2 --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS" --out /path/to/output.pcapng`
