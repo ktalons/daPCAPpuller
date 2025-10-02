@@ -26,6 +26,7 @@ datetime = ["python-dateutil"]
 [project.scripts]
 pcap-puller = "pcappuller.cli:main"
 pcap-puller-gui = "pcappuller.gui:main"
+pcap-clean = "pcappuller.clean_cli:main"
 
 [tool.setuptools]
 packages = ["pcappuller"]

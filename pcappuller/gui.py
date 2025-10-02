@@ -21,6 +21,8 @@ from .core import (
 from .errors import PCAPPullerError
 from .filters import COMMON_FILTERS, FILTER_EXAMPLES
 from .time_parse import parse_dt_flexible
+from .clean_cli import clean_pipeline
+from .tools import which_or_error
 
 
 def _open_advanced_settings(parent: "sg.Window", reco: dict, current: dict | None) -> dict | None:
@@ -145,6 +147,29 @@ def _open_filters_dialog(parent: "sg.Window") -> str | None:
     return None
 
 
+def compute_clean_defaults(out_path: Path, main_filter: str | None) -> dict:
+    try:
+        st = out_path.stat()
+        size = st.st_size
+    except Exception:
+        size = 0
+    suffix = out_path.suffix.lower()
+    # Heuristics
+    keep_format = (suffix == ".pcap")  # already pcap => keep; pcapng => try convert
+    reorder = True
+    snaplen = 256
+    split_seconds = 60 if size >= (2 * 1024 * 1024 * 1024) else None  # 2 GiB threshold
+    return {
+        "keep_format": keep_format,
+        "reorder": reorder,
+        "snaplen": snaplen,
+        "filter": (main_filter or ""),
+        "split_seconds": split_seconds,
+        "split_packets": None,
+        "out_dir": str(out_path.with_name(out_path.name + "_clean")),
+    }
+
+
 def run_puller(values, window: "sg.Window", stop_flag, adv_overrides: dict | None):
     try:
         start = parse_dt_flexible(values["-START-"])
@@ -220,6 +245,8 @@ def run_puller(values, window: "sg.Window", stop_flag, adv_overrides: dict | Non
             trim_per_batch=eff_trim_pb,
         )
         window.write_event_value("-DONE-", f"Done: wrote {result}")
+        # Provide a hint to the event loop about the output path
+        window.write_event_value("-MERGE-RESULT-", str(result))
     except Exception as e:
         tb = traceback.format_exc()
         window.write_event_value("-DONE-", f"Error: {e}\n{tb}")
@@ -243,6 +270,14 @@ def main():
          sg.Checkbox("Verbose", key="-VERBOSE-")],
         [sg.Text("Using recommended settings based on duration. Customize in Settings.", key="-RECO-INFO-", size=(100,2), text_color="gray")],
         [sg.Text("Precise filter analyzes files and discards those without packets in the time window.", key="-PF-HELP-", visible=False, text_color="gray")],
+        [sg.Frame("Clean merged output (optional)", [
+            [sg.Checkbox("Enable clean step", key="-CLEAN-ENABLE-", default=False), sg.Button("Run Clean Now", key="-RUN-CLEAN-"), sg.Button("Set defaults from merged file", key="-CLEAN-SET-DEFAULTS-")],
+            [sg.Checkbox("Keep original format (do not convert to pcap)", key="-CLEAN-KEEPFMT-", default=False), sg.Checkbox("Reorder timestamps", key="-CLEAN-REORDER-", default=True)],
+            [sg.Text("Snaplen"), sg.Input("256", key="-CLEAN-SNAPLEN-", size=(8,1)), sg.Text("Filter"), sg.Input(key="-CLEAN-FILTER-", expand_x=True), sg.Button("Use main filter", key="-CLEAN-COPY-FILTER-")],
+            [sg.Text("Start"), sg.Input(key="-CLEAN-START-", size=(22,1)), sg.Text("End"), sg.Input(key="-CLEAN-END-", size=(22,1))],
+            [sg.Text("Split seconds"), sg.Input(key="-CLEAN-SPLITSEC-", size=(8,1)), sg.Text("Split packets"), sg.Input(key="-CLEAN-SPLITPKT-", size=(10,1))],
+            [sg.Text("Out dir"), sg.Input(key="-CLEAN-OUTDIR-", expand_x=True), sg.FolderBrowse("Browse...")],
+        ], expand_x=True, relief=sg.RELIEF_SUNKEN)],
         [sg.Text("", key="-STATUS-", size=(80,1))],
         [sg.ProgressBar(100, orientation="h", size=(40, 20), key="-PB-")],
         [sg.Text("", expand_x=True), sg.Button("Settings...", key="-SETTINGS-"), sg.Button("Run"), sg.Button("Cancel"), sg.Button("Exit")],
@@ -251,7 +286,9 @@ def main():
     window = sg.Window("PCAPpuller", layout)
     stop_flag = {"stop": False}
     worker = None
+    clean_worker = None
     adv_overrides: dict | None = None
+    last_merged_path: Path | None = None
 
     def _update_reco_label():
         try:
@@ -269,6 +306,72 @@ def main():
             window["-RECO-INFO-"].update("Recommended: " + ", ".join(parts) + suffix)
         except Exception:
             pass
+
+    def _populate_clean_defaults_from_path(p: Path):
+        try:
+            d = compute_clean_defaults(p, values.get("-DFILTER-") or None)
+            window["-CLEAN-KEEPFMT-"].update(d["keep_format"])
+            window["-CLEAN-REORDER-"].update(d["reorder"])
+            window["-CLEAN-SNAPLEN-"].update(str(d["snaplen"]))
+            window["-CLEAN-FILTER-"].update(d["filter"])
+            window["-CLEAN-SPLITSEC-"].update("" if d["split_seconds"] is None else str(d["split_seconds"]))
+            window["-CLEAN-SPLITPKT-"].update("")
+            window["-CLEAN-OUTDIR-"].update(d["out_dir"]) 
+            window["-CLEAN-ENABLE-"].update(True)
+        except Exception:
+            pass
+
+    def _run_clean_thread(vals):
+        try:
+            in_path = Path(vals["-OUT-"])
+            if not in_path.exists():
+                window.write_event_value("-CLEAN-DONE-", f"Error: merged file not found: {in_path}")
+                return
+            if str(in_path).endswith(".gz"):
+                window.write_event_value("-CLEAN-DONE-", "Error: cleaning currently does not support .gz outputs. Disable Gzip and retry.")
+                return
+            out_dir = Path(vals.get("-CLEAN-OUTDIR-") or (in_path.with_name(in_path.name + "_clean")))
+            # Validate tools
+            try:
+                which_or_error("editcap")
+                if vals.get("-CLEAN-REORDER-"):
+                    which_or_error("reordercap")
+                if (vals.get("-CLEAN-FILTER-") or "").strip():
+                    which_or_error("tshark")
+            except Exception as te:
+                window.write_event_value("-CLEAN-DONE-", f"Error: {te}")
+                return
+            # Parse optional times
+            start_dt = parse_dt_flexible(vals.get("-CLEAN-START-") or "") if (vals.get("-CLEAN-START-") or "").strip() else None
+            end_dt = parse_dt_flexible(vals.get("-CLEAN-END-") or "") if (vals.get("-CLEAN-END-") or "").strip() else None
+            snaplen_str = (vals.get("-CLEAN-SNAPLEN-") or "").strip()
+            snaplen = int(snaplen_str) if snaplen_str else 256
+            splitsec_str = (vals.get("-CLEAN-SPLITSEC-") or "").strip()
+            splitpkt_str = (vals.get("-CLEAN-SPLITPKT-") or "").strip()
+            split_seconds = int(splitsec_str) if splitsec_str else None
+            split_packets = int(splitpkt_str) if splitpkt_str else None
+
+            outs = clean_pipeline(
+                input_path=in_path,
+                out_dir=out_dir,
+                keep_format=bool(vals.get("-CLEAN-KEEPFMT-")),
+                do_reorder=bool(vals.get("-CLEAN-REORDER-")),
+                snaplen=snaplen,
+                start_dt=start_dt,
+                end_dt=end_dt,
+                display_filter=(vals.get("-CLEAN-FILTER-") or None),
+                split_seconds=split_seconds,
+                split_packets=split_packets,
+                verbose=bool(vals.get("-VERBOSE-")),
+            )
+            if len(outs) == 1:
+                window.write_event_value("-CLEAN-DONE-", f"Clean done: {outs[0]}")
+            else:
+                msg = "Clean done (chunks):\n" + "\n".join(f"  {p}" for p in outs)
+                window.write_event_value("-CLEAN-DONE-", msg)
+        except Exception as e:
+            tb = traceback.format_exc()
+            window.write_event_value("-CLEAN-DONE-", f"Error: {e}\n{tb}")
 
     while True:
         event, values = window.read(timeout=200)
@@ -348,5 +451,36 @@ def main():
             print(values[event])
             worker = None
             window["-PB-"].update(0)
+            window["-STATUS-"].update("")
+        elif event == "-MERGE-RESULT-":
+            try:
+                last_merged_path = Path(values[event])
+                _populate_clean_defaults_from_path(last_merged_path)
+            except Exception:
+                pass
+        elif event == "-CLEAN-COPY-FILTER-":
+            window["-CLEAN-FILTER-"].update(values.get("-DFILTER-") or "")
+        elif event == "-CLEAN-SET-DEFAULTS-":
+            try:
+                p = Path(values.get("-OUT-") or "")
+                if p and p.exists():
+                    _populate_clean_defaults_from_path(p)
+                else:
+                    sg.popup_error("Output file does not exist yet. Run the merge first, then set defaults.")
+            except Exception:
+                pass
+        elif event == "-RUN-CLEAN-":
+            if not values.get("-CLEAN-ENABLE-"):
+                resp = sg.popup_ok_cancel("Enable 'Clean' to proceed?", title="Clean not enabled")
+                if resp != "OK":
+                    continue
+                window["-CLEAN-ENABLE-"].update(True)
+            if clean_worker is None:
+                window["-STATUS-"].update("Cleaning...")
+                clean_worker = threading.Thread(target=_run_clean_thread, args=(values,), daemon=True)
+                clean_worker.start()
+        elif event == "-CLEAN-DONE-":
+            print(values[event])
+            clean_worker = None
             window["-STATUS-"].update("")
     window.close()

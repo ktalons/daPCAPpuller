@@ -42,6 +42,38 @@ def run_editcap_trim(src: Path, dst: Path, start_dt, end_dt, out_format: str, ve
     _run(cmd, verbose)
 
 
+def run_editcap_snaplen(src: Path, dst: Path, snaplen: int, out_format: str | None = None, verbose: bool = False) -> None:
+    """Truncate frames to snaplen bytes, optionally converting format via -F."""
+    fmt_flag = ["-F", out_format] if out_format else []
+    cmd = ["editcap", "-s", str(int(snaplen)), *fmt_flag, str(src), str(dst)]
+    _run(cmd, verbose)
+
+
+def try_convert_to_pcap(src: Path, dst: Path, verbose: bool = False) -> bool:
+    """Attempt to convert pcapng->pcap. Returns True on success, False on failure.
+    Useful when input may contain multiple link-layer types (pcap cannot store multiple).
+    """
+    cmd = ["editcap", "-F", "pcap", str(src), str(dst)]
+    try:
+        _run(cmd, verbose)
+        return True
+    except subprocess.CalledProcessError:
+        if verbose:
+            logging.debug("Conversion to pcap failed; keeping original format for %s", src)
+        # Ensure dst isn't partially created
+        try:
+            if Path(dst).exists():
+                Path(dst).unlink()
+        except Exception:
+            pass
+        return False
+
+
+def run_reordercap(src: Path, dst: Path, verbose: bool = False) -> None:
+    cmd = ["reordercap", str(src), str(dst)]
+    _run(cmd, verbose)
+
+
 def run_tshark_filter(src: Path, dst: Path, display_filter: str, out_format: str, verbose: bool = False) -> None:
     fmt_flag = ["-F", out_format] if out_format else []
     cmd = ["tshark", "-r", str(src), "-Y", display_filter, "-w", str(dst), *fmt_flag]
